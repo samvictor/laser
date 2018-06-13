@@ -1,0 +1,21 @@
+{
+  "short_name": "Lasers",
+  "name": "Lasers",
+  "icons": [
+    {
+      "src": "/laser/images/light_192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/laser/images/light_512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/laser/",
+  "background_color": "#282828",
+  "display": "standalone",
+  "scope": "/laser/",
+  "theme_color": "#f0211a"
+}

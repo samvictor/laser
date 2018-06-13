@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en-US"> 
+  <head>
+    <title>Laser</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="manifest" href="/laser/manifest.json">
+    <link rel="icon" type="image/png" href="/laser/images/light_192.png">
+    
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+    
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0; 
+        overflow-y: hidden;
+      }
+			canvas {
+			  width: 100%; 
+			  height: 100%; 
+			}
+      
+      .btn:hover {
+        cursor: pointer;
+      }
+      .card {
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.6);
+      }
+      
+      #welcome {
+        width: 70%;
+        max-width: 500px;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translateX(-50%) translateY(-50%);
+        background-color: rgba(255, 255, 255, 0.95);
+        display: none;
+      }
+      
+      #a2hs_prompt {
+        display: none;
+      }
+      #a2hs_btn {
+        margin-top: 13px;
+        cursor: pointer;
+        color: #3366ff;
+        font-weight: 400;
+        transition: color 0.3s;
+      }
+      #a2hs_btn:hover {
+        color: #25c;
+      }
+      
+      .overlay {
+        position: fixed;
+        left: 40px;
+        top: 40px;
+      }
+    </style>
+  </head>
+  
+  <body>
+    <div id="welcome" class="card border-primary">
+      <div class="card-body text-center">
+        <h3>Welcome</h3>
+        login<br>
+        continue as guest
+        <div id="a2hs_prompt" class="">
+          <h5 id="a2hs_btn">Install This Web App</h5>
+        </div>
+      </div>
+    </div>
+    
+    <h5 style="color: white;" class="overlay"></h5>
+  </body>
+  
+  <script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+	<script src="/laser/threejs/LoaderUtils.js"></script>
+  <script src="/laser/threejs/PropertyBinding.js"></script>
+  <script src="/laser/threejs/GLTFLoader.js"></script>
+		
+  <script>
+    // Check that service workers are registered
+    if ('serviceWorker' in navigator) {
+      // Use the window load event to keep the page load performant
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/laser/laser-sw.js');
+      });
+    }
+    
+    let deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      deferredPrompt = e;
+      
+      $('#a2hs_prompt').fadeIn();
+    });
+    
+    $('#a2hs_btn').click(() => {
+      $('#a2hs_prompt').fadeOut();
+      deferredPrompt.prompt();
+      // Wait for the user to respond to the prompt
+      deferredPrompt.userChoice
+        .then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the A2HS prompt');
+          } else {
+            console.log('User dismissed the A2HS prompt');
+          }
+          deferredPrompt = null;
+        });
+    });
+    
+    window.addEventListener('appinstalled', () => {
+      console.log('a2hs installed');
+    });
+    
+    
+    
+    
+    // THREE js stuff
+    let renderer = new THREE.WebGLRenderer( { antialias: true } );
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		$('body').prepend( renderer.domElement );
+		window.addEventListener( 'resize', onWindowResize, false );
+    let x_limit = window.innerWidth/10;
+		function onWindowResize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			x_limit = window.innerWidth/10;
+		}
+		
+		
+		
+    let scene = new THREE.Scene();
+		let camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 1000 );
+		camera.position.set( 0, 0, 100 );
+    
+    let star_geo = new THREE.SphereBufferGeometry(0.3);
+    let star_material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    //star_material.shading = THREE.SmoothShading;
+    
+    let stars = [];
+    for (var i = 0; i < 8; i++) {
+      stars[i] = new THREE.PointLight( 0xffffff, 1, 50 );
+      stars[i].add( new THREE.Mesh( star_geo, star_material ));
+      stars[i].position.set( 
+                            -x_limit + Math.random()*x_limit*2, 
+                            -250 + Math.random()*500,
+                            -400 + Math.random()*400
+                        );
+      scene.add( stars[i] );
+    }
+    
+    
+    // low polyship
+    // envmap
+		light = new THREE.HemisphereLight( 0xbbbbff, 0x444422 );
+		light.position.set( 0, 1, 0 );
+		scene.add( light );
+		
+		// model
+		ship = null;
+    
+		var loader = new THREE.GLTFLoader();
+		loader.load( '/laser/models/low_ship/low_ship.gltf', ( gltf ) => {
+		  ship = gltf.scene;
+		  gltf.scene.translateY(-9);
+		  gltf.scene.translateZ(75);
+		  gltf.scene.rotateX(-2.2);
+		  gltf.scene.rotateZ(3.14);
+			scene.add( gltf.scene );
+		} );
+    
+    
+    // controls
+    let right_down = false;
+    let left_down = false;
+    $(document).keydown(function( e ) {
+      if ( e.which === 39 ) {
+       event.preventDefault();
+       right_down = true;
+      }
+      else if ( e.which === 37 ) {
+       event.preventDefault();
+       left_down = true;
+      }
+    });
+    
+    $(document).keyup(function( e ) {
+      if ( e.which === 39 ) {
+       event.preventDefault();
+       right_down = false;
+      }
+      else if ( e.which === 37 ) {
+       event.preventDefault();
+       left_down = false;
+      }
+    });
+    
+    ship_angle = 0;
+    
+    // animate
+		var animate = function () {
+			requestAnimationFrame( animate );
+      
+      for( var i = 0; i < 8; i++ ) {
+        if (stars[i].position.y - 5 < -300) {
+          stars[i].position.set( 
+                                -x_limit + Math.random()*x_limit*2, 
+                                250,
+                                -400 + Math.random()*400
+                            );
+        }
+        else
+          stars[i].position.y -= 5;
+      }
+      
+      if (right_down) {
+        if (ship_angle < 115) {
+          ship.rotateZ(0.04);
+          ship_angle += 1;
+        }
+      }
+      else if (left_down) {
+        if (ship_angle > -115) {
+          ship.rotateZ(-0.04);
+          ship_angle -= 1;
+        }
+      }
+      else if(ship_angle !== 0) {
+        if (ship_angle > 0) {
+          ship.rotateZ(-0.04);
+          ship_angle -= 1;
+        }
+        else {
+          ship.rotateZ(0.04);
+          ship_angle += 1;
+        }
+      }
+      
+      ship.position.x = x_limit*ship_angle/1000;
+
+        
+
+			renderer.render( scene, camera );
+		};
+
+		animate();
+  </script>
+</html>
